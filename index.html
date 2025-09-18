@@ -2,7 +2,8 @@
 <html>
 <head>
   <title>QR Entry-Exit System</title>
-  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+  <!-- ✅ Correct library link -->
+  <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; }
     #reader { width: 320px; height: 320px; margin: 20px auto; border: 2px solid #ccc; }
@@ -25,7 +26,6 @@
   <h2>QR Entry-Exit Scanner</h2>
   <div id="reader"></div>
   <div id="result"></div>
-  <button id="permitBtn" style="display:none;">Permitted</button>
 
   <h3>Or test by uploading a QR image:</h3>
   <input type="file" id="uploadInput" accept="image/*" />
