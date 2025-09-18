@@ -1,25 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QR Entry-Exit System</title>
-  <!-- ✅ Correct library link -->
+  <!-- QR library -->
   <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; }
-    #reader { width: 320px; height: 320px; margin: 20px auto; border: 2px solid #ccc; }
-    #result {
-      margin-top: 20px;
-      font-size: 22px;
-      font-weight: bold;
-      padding: 20px;
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+    }
+    h2 {
+      background: #4CAF50;
+      color: white;
+      padding: 15px;
+      margin: 0 0 15px 0;
+    }
+    #reader {
+      width: 90%;
+      max-width: 350px;
+      height: 350px;
+      margin: auto;
+      border: 3px solid #4CAF50;
       border-radius: 12px;
-      max-width: 400px;
+      background: white;
+    }
+    #result {
+      margin-top: 15px;
+      font-size: 20px;
+      font-weight: bold;
+      padding: 15px;
+      border-radius: 12px;
+      max-width: 90%;
       margin-left: auto;
       margin-right: auto;
     }
     .green { background-color: #4CAF50; color: white; }
     .red { background-color: #F44336; color: white; }
-    #uploadInput { margin-top: 20px; }
+    .upload-box {
+      margin: 20px auto;
+    }
+    input[type=file] {
+      font-size: 16px;
+    }
+    button {
+      margin-top: 10px;
+      padding: 12px 20px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background: #2196F3;
+      color: white;
+      cursor: pointer;
+    }
+    button:active {
+      background: #1976D2;
+    }
   </style>
 </head>
 <body>
@@ -27,11 +67,16 @@
   <div id="reader"></div>
   <div id="result"></div>
 
-  <h3>Or test by uploading a QR image:</h3>
-  <input type="file" id="uploadInput" accept="image/*" />
+  <div class="upload-box">
+    <h3>Or upload QR image:</h3>
+    <input type="file" id="uploadInput" accept="image/*">
+  </div>
+
+  <button onclick="restartScanner()">🔄 Restart Camera</button>
 
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwu1KmO06YrjW6pEHpkhEom0XGdE0jMFhbmlOjZDOGXb-XlMD7ft6STYo8KbugdAwUDaw/exec";
+    let html5QrCode;
 
     function showMessage(message, isAllowed) {
       const resultDiv = document.getElementById("result");
@@ -49,18 +94,22 @@
             showMessage(data.message, false);
           }
         })
-        .catch(err => showMessage("Error contacting server", false));
+        .catch(err => showMessage("⚠️ Error contacting server", false));
     }
 
-    // Start camera scanner
     async function startScanner() {
       try {
-        const html5QrCode = new Html5Qrcode("reader");
+        html5QrCode = new Html5Qrcode("reader");
         const devices = await Html5Qrcode.getCameras();
-        console.log("Cameras found:", devices);
 
         if (devices && devices.length) {
-          const cameraId = devices[0].id;
+          // Find back camera
+          let backCam = devices.find(d => 
+            d.label.toLowerCase().includes("back") ||
+            d.label.toLowerCase().includes("environment")
+          );
+          const cameraId = backCam ? backCam.id : devices[0].id;
+
           await html5QrCode.start(
             cameraId,
             { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -77,7 +126,15 @@
       }
     }
 
-    startScanner();
+    function restartScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          startScanner();
+        });
+      } else {
+        startScanner();
+      }
+    }
 
     // Upload fallback
     document.getElementById("uploadInput").addEventListener("change", (e) => {
@@ -88,6 +145,8 @@
         .then(decodedText => processScan(decodedText))
         .catch(err => showMessage("Could not read QR from image", false));
     });
+
+    startScanner();
   </script>
 </body>
 </html>
