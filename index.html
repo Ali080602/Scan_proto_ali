@@ -2,14 +2,14 @@
 <html>
 <head>
   <title>QR Entry-Exit System</title>
-  <!-- Reliable CDN for html5-qrcode -->
+  <!-- QR scanner library -->
   <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 0; }
     #reader { width: 320px; height: 320px; margin: 20px auto; }
     #result {
       margin-top: 20px;
-      font-size: 24px;
+      font-size: 22px;
       font-weight: bold;
       padding: 20px;
       border-radius: 12px;
@@ -24,6 +24,7 @@
       font-size: 18px; border: none; border-radius: 8px;
       cursor: pointer;
     }
+    #uploadInput { margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -31,6 +32,9 @@
   <div id="reader"></div>
   <div id="result"></div>
   <button id="permitBtn" style="display:none;">Permitted</button>
+
+  <h3>Or test by uploading a QR image:</h3>
+  <input type="file" id="uploadInput" accept="image/*" />
 
   <script>
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwu1KmO06YrjW6pEHpkhEom0XGdE0jMFhbmlOjZDOGXb-XlMD7ft6STYo8KbugdAwUDaw/exec";
@@ -41,7 +45,7 @@
       resultDiv.className = isAllowed ? "green" : "red";
     }
 
-    function onScanSuccess(decodedText) {
+    function processScan(decodedText) {
       fetch(`${SCRIPT_URL}?id=${decodedText}`)
         .then(res => res.json())
         .then(data => {
@@ -68,17 +72,40 @@
         .catch(err => showMessage("Error contacting server", false));
     }
 
+    // Camera scanner
+    function onScanSuccess(decodedText) {
+      processScan(decodedText);
+    }
     function onScanError(errorMessage) {
       console.warn("QR Scan error:", errorMessage);
     }
 
-    const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      onScanSuccess,
-      onScanError
-    );
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      const html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess,
+        onScanError
+      );
+    } else {
+      document.getElementById("reader").innerHTML = "<p>No camera found. Use upload option below.</p>";
+    }
+
+    // Upload fallback for desktop
+    document.getElementById("uploadInput").addEventListener("change", (e) => {
+      if (e.target.files.length === 0) return;
+      const file = e.target.files[0];
+      const html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.scanFile(file, true)
+        .then(decodedText => {
+          processScan(decodedText);
+        })
+        .catch(err => {
+          showMessage("Could not read QR from image", false);
+          console.error(err);
+        });
+    });
   </script>
 </body>
 </html>
